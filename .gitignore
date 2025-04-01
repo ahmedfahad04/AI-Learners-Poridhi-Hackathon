@@ -1,2 +1,2 @@
-Airflow docker/logs/*
+*/logs/*
 Airflow docker/dags/__pycache__/*
