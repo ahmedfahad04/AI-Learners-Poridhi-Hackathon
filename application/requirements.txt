@@ -1,0 +1,5 @@
+streamlit
+uvicorn
+fastapi
+pydantic
+click==8.1.3
