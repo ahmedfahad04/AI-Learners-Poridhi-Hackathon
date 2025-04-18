@@ -1,7 +1,8 @@
 from models import Product 
 from database import MockDatabase 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, File, UploadFile
 from typing import List, Optional
+import io
 
 app = FastAPI()
 # Update the path to point to the CSV file
@@ -33,3 +34,15 @@ def search_products(query: str = Query(..., description="Search term for product
 @app.get("/count")
 def get_product_count():
     return {"total": db.get_product_count()}
+
+@app.post("/upload_csv")
+def upload_csv(file: UploadFile = File(...)):
+    try:
+        # Read file contents into memory
+        contents = file.file.read()
+        # Pass a BytesIO object to the database method
+        num_uploaded = db.upload_csv_to_qdrant(io.BytesIO(contents))
+        return {"message": f"Uploaded {num_uploaded} products to Qdrant."}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
