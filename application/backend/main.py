@@ -33,7 +33,7 @@ def search_products(query: str = Query(..., description="Search term for product
 
 @app.get("/count")
 def get_product_count():
-    return {"total": db.get_product_count()}
+    return db.get_product_count()
 
 @app.post("/upload_csv")
 def upload_csv(file: UploadFile = File(...)):
