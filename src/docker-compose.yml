@@ -1,18 +1,31 @@
-version: '3.8'
+version: "3.9"
+
 services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+    container_name: backend
+    image: backend-web
+    environment:
+      - QDRANT_HOST=qdrant
     ports:
-      - "8000:8000"
+      - "8001:8000"
+    networks:
+      - poridhi-ai-net
+
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+    container_name: frontend
     ports:
       - "8501:8501"
     environment:
-      - BACKEND_URL=http://backend:8000
+      - BACKEND_URL=http://backend:8000 # port 8000 is inside Docker
     depends_on:
       - backend
+    networks:
+      - poridhi-ai-net
+
+networks:
+  poridhi-ai-net:
+    external: true
