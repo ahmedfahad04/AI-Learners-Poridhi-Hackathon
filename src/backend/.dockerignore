@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.ipynb
+test.ipynb
+.env
+venv/
+prometheus_data/
+grafana_data/
+.qdrant_data/
+*.log
