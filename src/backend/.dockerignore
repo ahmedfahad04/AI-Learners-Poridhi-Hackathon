@@ -1,7 +1,4 @@
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
 *.ipynb
 test.ipynb
 .env
@@ -10,3 +7,12 @@ prometheus_data/
 grafana_data/
 .qdrant_data/
 *.log
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.db
+.env
+.git/
+.vscode/
+*.egg-info/

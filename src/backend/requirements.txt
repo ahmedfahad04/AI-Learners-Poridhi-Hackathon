@@ -4,7 +4,6 @@ fastapi==0.115.12
 qdrant_client==1.14.1
 # torch==2.7.0
 sentence_transformers==4.1.0
-fastapi 
 uvicorn 
 pydantic 
 pandas 

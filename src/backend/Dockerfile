@@ -1,5 +1,5 @@
-# 🧠 Use an official PyTorch image with Python 3.11
-FROM pytorch/pytorch:2.7.0-cuda11.8-cudnn9-runtime as base
+# 🧠 Use a minimal Python 3.11 base image
+FROM python:3.11-slim
 
 # 👇 Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -7,21 +7,36 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# 🐍 Upgrade pip and install extra system tools
+# 🛠️ Install minimal system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git gcc curl \
+    build-essential \
+    git \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 📦 Install dependencies using requirements.txt
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# 🐍 Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip
 
-# 🧪 Optional: Separate additional installs for caching benefit
-# RUN pip install --no-cache-dir fastapi uvicorn pydantic pandas python-multipart prometheus_fastapi_instrumentator
+# 📦 Copy and install app dependencies (except torch for now)
+# COPY requirements.txt .
+# RUN pip install --no-cache-dir -r requirements.txt
+# torch CPU
+# ----------------------
+RUN pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-# 📁 Copy your full app
+# sentence transformers deps
+# ----------------------
+RUN pip3 install scikit-learn transformers pydantic fastapi qdrant_client uvicorn pandas python-multipart prometheus_fastapi_instrumentator 
+
+# install sentence transformers no deps
+# ----------------------
+RUN pip3 install --no-deps sentence-transformers==4.1.0
+
+# 🧠 Install latest PyTorch (CPU only)
+# RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# 📁 Copy application code
 COPY . .
 
-# 🚀 Launch the app
+# 🚀 Run the FastAPI server
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
