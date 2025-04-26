@@ -26,7 +26,7 @@ RUN pip3 install torch torchvision --index-url https://download.pytorch.org/whl/
 
 # sentence transformers deps
 # ----------------------
-RUN pip3 install scikit-learn transformers pydantic fastapi qdrant_client uvicorn pandas python-multipart prometheus_fastapi_instrumentator 
+RUN pip3 install keybert scikit-learn transformers pydantic fastapi qdrant_client uvicorn pandas python-multipart prometheus_fastapi_instrumentator 
 
 # install sentence transformers no deps
 # ----------------------

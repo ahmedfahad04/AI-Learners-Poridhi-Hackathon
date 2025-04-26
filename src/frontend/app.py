@@ -6,7 +6,7 @@ import os
 # Determine backend URL via environment variable, defaulting to localhost
 BASE_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
 
-CONFIDENCE_LEVEL = 0.65
+CONFIDENCE_LEVEL = 0.25
 
 def highlight_text(text, query_terms):
     """Highlights query terms in the text with markdown formatting"""
@@ -39,7 +39,7 @@ def display_search_results(search_query, results):
         st.write(f"Total products found: {len(results)}")
         query_terms = search_query.split()
         for product in results:
-            highlighted_name = highlight_text(product['name'], query_terms)
+            highlighted_name = highlight_text(product['title'], query_terms)
             highlighted_description = highlight_text(product['description'], query_terms)
             st.markdown(f"- **{highlighted_name}**: {highlighted_description} (${product['price']}) => Confidence: {product['score']}", unsafe_allow_html=True)
     else:
