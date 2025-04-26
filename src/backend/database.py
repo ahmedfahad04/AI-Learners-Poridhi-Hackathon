@@ -8,8 +8,7 @@ import numpy as np
 import pandas as pd
 import os
 
-DB_HOST = os.getenv("QDRANT_HOST", "localhost")
-DB_PORT = os.getenv("QDRANT_PORT", 6333)
+DB_URL = os.getenv("DATABASE_URL", "http://qdrant:6333")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -25,7 +24,8 @@ class QdrantDB:
 
     def _init_db(self, file_path: str = None):
         self.model = SentenceTransformer('all-MiniLM-L6-v2')
-        self.client = QdrantClient(host=DB_HOST, port=DB_PORT)
+        # self.client = QdrantClient(host=DB_HOST, port=DB_PORT)
+        self.client = QdrantClient(url=os.getenv("DATABASE_URL", "http://qdrant:6333"))
         self.collection_name = "products"
         self.total_records = 0
 

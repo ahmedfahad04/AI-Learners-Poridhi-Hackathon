@@ -1,24 +1,27 @@
-FROM python:3.10-slim as base
+# 🧠 Use an official PyTorch image with Python 3.11
+FROM pytorch/pytorch:2.7.0-cuda11.8-cudnn9-runtime as base
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+# 👇 Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Install dependencies separately for caching
+# 🐍 Upgrade pip and install extra system tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git gcc curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 📦 Install dependencies using requirements.txt
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-RUN pip install fastapi uvicorn pydantic pandas python-multipart prometheus_fastapi_instrumentator
+# 🧪 Optional: Separate additional installs for caching benefit
+# RUN pip install --no-cache-dir fastapi uvicorn pydantic pandas python-multipart prometheus_fastapi_instrumentator
 
-# Copy rest of the code
+# 📁 Copy your full app
 COPY . .
 
+# 🚀 Launch the app
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

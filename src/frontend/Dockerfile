@@ -1,5 +1,3 @@
-# app/Dockerfile
-
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -14,9 +12,14 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-COPY . .
+# Only copy requirements first to leverage Docker cache
+COPY requirements.txt .
 
-RUN  pip install --no-cache-dir -r requirements.txt
+# Install dependencies before copying the rest of the code
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Now copy the rest of the app
+COPY . .
 
 EXPOSE 8501
 
