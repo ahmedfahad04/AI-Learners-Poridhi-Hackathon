@@ -1,14 +1,14 @@
+version: '3.8'
+
 services:
   backend:
     build:
       context: .
       dockerfile: Dockerfile
     image: poridhi-backend:latest
-    command: uvicorn main:app --reload --workers 1 --host 0.0.0.0 --port 8000
+    command: uvicorn main:app --workers 2 --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
-    volumes:
-      - .:/app # Only for development; remove in production
     environment:
       - DATABASE_URL=http://qdrant:6333
     depends_on:
@@ -18,6 +18,11 @@ services:
     restart: unless-stopped
     networks:
       - poridhi-ai-net
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "1.0"
+    #       memory: 512M
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -35,9 +40,11 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus_data/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus_data/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=7d'
     restart: unless-stopped
     networks:
       - poridhi-ai-net
@@ -55,18 +62,8 @@ services:
 
 volumes:
   qdrant_data:
-  grafana_data:
-    driver: local
-    driver_opts:
-      o: bind
-      type: none
-      device: ./grafana_data
   prometheus_data:
-    driver: local
-    driver_opts:
-      o: bind
-      type: none
-      device: ./prometheus_data
+  grafana_data:
 
 networks:
   poridhi-ai-net:

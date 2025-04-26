@@ -1,16 +1,4 @@
 services:
-  backend:
-    build:
-      context: ./backend
-    container_name: backend
-    image: backend-web
-    environment:
-      - QDRANT_HOST=qdrant
-    ports:
-      - "8001:8000"
-    networks:
-      - poridhi-ai-net
-
   frontend:
     build:
       context: ./frontend
@@ -19,11 +7,37 @@ services:
       - "8501:8501"
     environment:
       - BACKEND_URL=http://backend:8000 # port 8000 is inside Docker
-    depends_on:
-      - backend
     networks:
       - poridhi-ai-net
+    depends_on:
+      - backend
+      
+  # Reference the existing backend service from the backend docker-compose
+  backend:
+    extends:
+      file: ./backend/docker-compose.yml
+      service: backend
+      
+  qdrant:
+    extends:
+      file: ./backend/docker-compose.yml
+      service: qdrant
+      
+  prometheus:
+    extends:
+      file: ./backend/docker-compose.yml
+      service: prometheus
+      
+  grafana:
+    extends:
+      file: ./backend/docker-compose.yml
+      service: grafana
 
 networks:
   poridhi-ai-net:
     external: true
+    
+volumes:
+  qdrant_data:
+  prometheus_data:
+  grafana_data:
