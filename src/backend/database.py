@@ -51,6 +51,8 @@ class QdrantDB:
 
         new_query = self.filter_queries(query)
 
+        print("NEW QUERY: ", new_query)
+
         query_vector = self.model.encode(new_query).tolist()
         results = self.client.search(
             collection_name=self.collection_name,
@@ -60,6 +62,7 @@ class QdrantDB:
 
         return [
             {
+                "id": str(match.id),
                 "title": match.payload.get("title"),
                 "description": match.payload.get("description"),
                 "category": match.payload.get("category"),
@@ -180,4 +183,41 @@ class QdrantDB:
         logging.info(f"Filtered query: {new_query}")
 
         return new_query
+        
+    def get_product_by_id(self, product_id: str):
+        """
+        Retrieves a product by its UUID directly from Qdrant.
+        
+        Args:
+            product_id: The UUID of the product to retrieve
+            
+        Returns:
+            A dictionary containing the product details or None if not found
+        """
+        try:
+            # Try to fetch the point by ID
+            points = self.client.retrieve(
+                collection_name=self.collection_name,
+                ids=[product_id]
+            )
+            
+            if not points:
+                logging.warning(f"Product with ID {product_id} not found")
+                return None
+                
+            # Return the first point (should be only one since IDs are unique)
+            point = points[0]
+            
+            return {
+                "id": str(point.id),
+                "title": point.payload.get("title"),
+                "description": point.payload.get("description"),
+                "category": point.payload.get("category"),
+                "price": point.payload.get("price"),
+                "text_for_embedding": point.payload.get("text_for_embedding")
+            }
+            
+        except Exception as e:
+            logging.error(f"Error retrieving product by ID {product_id}: {e}")
+            return None
 
