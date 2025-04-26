@@ -1,8 +1,12 @@
 import requests
 import re
 import streamlit as st
+import os
 
-CONFIDENCE_LEVEL = 0.65
+# Determine backend URL via environment variable, defaulting to localhost
+BASE_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
+
+CONFIDENCE_LEVEL = 0.25
 
 def highlight_text(text, query_terms):
     """Highlights query terms in the text with markdown formatting"""
@@ -15,7 +19,7 @@ def highlight_text(text, query_terms):
     return highlighted
 
 def search_products(query):
-    response = requests.get("http://127.0.0.1:8000/search", params={"query": query})
+    response = requests.get(f"{BASE_URL}/search", params={"query": query})
     if response.status_code == 200:
 
         results = [product for product in response.json() if product['score'] > CONFIDENCE_LEVEL]
@@ -35,7 +39,7 @@ def display_search_results(search_query, results):
         st.write(f"Total products found: {len(results)}")
         query_terms = search_query.split()
         for product in results:
-            highlighted_name = highlight_text(product['name'], query_terms)
+            highlighted_name = highlight_text(product['title'], query_terms)
             highlighted_description = highlight_text(product['description'], query_terms)
             st.markdown(f"- **{highlighted_name}**: {highlighted_description} (${product['price']}) => Confidence: {product['score']}", unsafe_allow_html=True)
     else:
@@ -45,7 +49,7 @@ def upload_csv_to_qdrant(uploaded_file):
     if uploaded_file is not None:
         with st.spinner("Uploading and processing file..."):
             files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "text/csv")}
-            response = requests.post("http://127.0.0.1:8000/upload_csv", files=files)
+            response = requests.post(f"{BASE_URL}/upload_csv", files=files)
             if response.status_code == 200:
                 st.success(response.json().get("message", "Upload successful!"))
             else:
@@ -56,7 +60,7 @@ def main():
     st.title("E-commerce Search")
 
     # total products
-    resp = requests.get("http://127.0.0.1:8000/count")
+    resp = requests.get(f"{BASE_URL}/count")
     count = resp.json()
     st.write(f"Total products available: {count}")
 

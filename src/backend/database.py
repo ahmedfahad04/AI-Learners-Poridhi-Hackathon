@@ -6,6 +6,11 @@ from qdrant_client import QdrantClient
 from qdrant_client.http.models import PointStruct, VectorParams, Distance
 import numpy as np
 import pandas as pd
+import os
+from keybert import KeyBERT
+
+
+DB_URL = os.getenv("DATABASE_URL", "http://qdrant:6333")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -21,7 +26,9 @@ class QdrantDB:
 
     def _init_db(self, file_path: str = None):
         self.model = SentenceTransformer('all-MiniLM-L6-v2')
-        self.client = QdrantClient(host="localhost", port=6333)
+        self.kw_model = KeyBERT()
+        # self.client = QdrantClient(host=DB_HOST, port=DB_PORT)
+        self.client = QdrantClient(url=os.getenv("DATABASE_URL", "http://qdrant:6333"))
         self.collection_name = "products"
         self.total_records = 0
 
@@ -41,18 +48,26 @@ class QdrantDB:
             return 0
 
     def search_products(self, query: str, top_k: int = 10):
-        query_vector = self.model.encode(query).tolist()
+
+        new_query = self.filter_queries(query)
+
+        print("NEW QUERY: ", new_query)
+
+        query_vector = self.model.encode(new_query).tolist()
         results = self.client.search(
             collection_name=self.collection_name,
             query_vector=query_vector,
             limit=top_k
         )
+
         return [
             {
-                "name": match.payload.get("name"),
+                "id": str(match.id),
+                "title": match.payload.get("title"),
                 "description": match.payload.get("description"),
                 "category": match.payload.get("category"),
                 "price": match.payload.get("price"),
+                "text_for_embedding": match.payload.get("text_for_embedding"),
                 "score": match.score
             }
             for match in results
@@ -73,10 +88,11 @@ class QdrantDB:
 
         # --- Data Cleaning ---
         # Handle potential missing values, e.g., fill NaN in price columns with 0 or a suitable default
-        df['actual_price'] = pd.to_numeric(df['actual_price'].str.replace('[₹,]', '', regex=True), errors='coerce').fillna(0)
-        df['discount_price'] = pd.to_numeric(df['discount_price'].str.replace('[₹,]', '', regex=True), errors='coerce').fillna(0)
-        df['ratings'] = pd.to_numeric(df['ratings'], errors='coerce').fillna(0)
-        df['no_of_ratings'] = pd.to_numeric(df['no_of_ratings'].str.replace(',', '', regex=True), errors='coerce').fillna(0)
+        # df['actual_price'] = pd.to_numeric(df['actual_price'].str.replace('[₹,]', '', regex=True), errors='coerce').fillna(0)
+        # df['discount_price'] = pd.to_numeric(df['discount_price'].str.replace('[₹,]', '', regex=True), errors='coerce').fillna(0)
+        # df['ratings'] = pd.to_numeric(df['ratings'], errors='coerce').fillna(0)
+        # df['no_of_ratings'] = pd.to_numeric(df['no_of_ratings'].str.replace(',', '', regex=True), errors='coerce').fillna(0)
+        
         # Fill NaN in text fields with empty strings
         df.fillna('', inplace=True)
         logging.info("Data cleaning completed.")
@@ -107,19 +123,16 @@ class QdrantDB:
 
             products = []
             for _, row in batch_df.iterrows():
-                category = f"{row['main_category']} > {row['sub_category']}" if row['main_category'] and row['sub_category'] else row['main_category'] or row['sub_category'] or "Uncategorized"
+                # category = f"{row['main_category']} > {row['sub_category']}" if row['main_category'] and row['sub_category'] else row['main_category'] or row['sub_category'] or "Uncategorized"
                 product = {
                     "id": str(uuid.uuid4()),
-                    "name": row['name'],
-                    "description": row['name'],
-                    "category": category,
-                    "actual_price": float(row['actual_price']),
-                    "discount_price": float(row['discount_price']),
-                    "image": row['image'],
-                    "link": row['link'],
-                    "ratings": float(row['ratings']),
-                    "no_of_ratings": int(row['no_of_ratings'])
+                    "title": row['title'],
+                    "description": row['description'],
+                    "category": row['category'],
+                    "text_for_embedding": row['text_for_embedding'],
                 }
+
+                logging.debug(f"Product data: {product}")
                 products.append(product)
 
             if not products:
@@ -128,7 +141,7 @@ class QdrantDB:
 
             try:
                 # Generate embeddings for the batch
-                texts = [f"Name: {p['name']}, Category: {p['category']}, Price: {p['actual_price']}" for p in products]
+                texts = [f"{p['text_for_embedding']}" for p in products]
                 vectors = self.model.encode(texts).tolist()
 
                 points = [
@@ -154,3 +167,57 @@ class QdrantDB:
 
         logging.info(f"CSV upload finished. Total successfully uploaded: {total_uploaded}. Total failed: {total_failed}.")
         return total_uploaded
+
+    def filter_queries(self, query: str, top_k: int = 3):
+
+        keywords = self.kw_model.extract_keywords(query, keyphrase_ngram_range=(1, 1), stop_words='english')
+
+        logging.info(f"Extracted keywords: {keywords}")
+
+        # return top 3
+        top_keys = keywords[:top_k]
+
+        # create a f string with comma delimeter
+        new_query = ', '.join([key[0] for key in top_keys])
+
+        logging.info(f"Filtered query: {new_query}")
+
+        return new_query
+        
+    def get_product_by_id(self, product_id: str):
+        """
+        Retrieves a product by its UUID directly from Qdrant.
+        
+        Args:
+            product_id: The UUID of the product to retrieve
+            
+        Returns:
+            A dictionary containing the product details or None if not found
+        """
+        try:
+            # Try to fetch the point by ID
+            points = self.client.retrieve(
+                collection_name=self.collection_name,
+                ids=[product_id]
+            )
+            
+            if not points:
+                logging.warning(f"Product with ID {product_id} not found")
+                return None
+                
+            # Return the first point (should be only one since IDs are unique)
+            point = points[0]
+            
+            return {
+                "id": str(point.id),
+                "title": point.payload.get("title"),
+                "description": point.payload.get("description"),
+                "category": point.payload.get("category"),
+                "price": point.payload.get("price"),
+                "text_for_embedding": point.payload.get("text_for_embedding")
+            }
+            
+        except Exception as e:
+            logging.error(f"Error retrieving product by ID {product_id}: {e}")
+            return None
+

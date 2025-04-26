@@ -15,8 +15,7 @@ def get_products(skip: int = 0, limit: int = 100):
 
 @router.get("/products/{product_id}")
 def get_product(product_id: str):
-    products = db.get_products()
-    product = next((p for p in products if str(p.get("id")) == product_id), None)
+    product = db.get_product_by_id(product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
