@@ -1,4 +1,4 @@
-# Poridhi AI Hackathon - Airflow Project
+# Poridhi AI Hackathon
 
 ## Prerequisites
 
