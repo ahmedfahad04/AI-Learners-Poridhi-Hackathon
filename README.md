@@ -1,4 +1,4 @@
-# Poridhi AI Hackathon
+# [Poridhi AI Hackathon](https://poridhi.io/hackathon)
 
 ## Prerequisites
 
